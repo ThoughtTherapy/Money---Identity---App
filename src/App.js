@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 
+const ANTHROPIC_KEY = process.env.REACT_APP_ANTHROPIC_API_KEY;
+
 const AFFIRMATIONS = [
   { i: "I am in charge of my earning potential.", you: "You are allowed to want and have more." },
   { i: "I am learning to trust that money can stay. This cycle ends with me.", you: "The negative patterns you've learnt about money are not a life sentence." },
@@ -31,6 +33,39 @@ const AFFIRMATIONS = [
   { i: "I am becoming someone who expects good things financially.", you: "Expectation is just deciding what's normal for you, a little bit of audacity will take you far." },
   { i: "I trust myself with more. I am ready for it.", you: "The version of you who has more isn't a different person. It's just you, with less resistance." },
   { i: "I am not starting over. I am starting from experience.", you: "Everything you've been through financially has taught you something. Use it." },
+];
+
+const ASKFORMATIONS = [
+  "How come it's so easy for me to earn good money?",
+  "How come I always find a way to make things work financially?",
+  "Why am I so worthy of financial abundance?",
+  "How come money flows to me so naturally?",
+  "How come I'm so good at building wealth?",
+  "Why do I deserve to live a financially free life?",
+  "How come receiving money is becoming easier for me every day?",
+  "How come I attract such incredible opportunities?",
+  "Why do I trust myself so completely with money?",
+  "How come my relationship with money keeps getting better?",
+  "How come it's so easy for me to create multiple income streams?",
+  "Why does abundance feel so natural to me?",
+  "How come I'm so open to money coming from unexpected places?",
+  "Why do I make such good financial decisions?",
+  "How come financial security is becoming my new normal?",
+  "How come it's so easy for me to charge what I'm worth?",
+  "Why do the right opportunities always find me?",
+  "How come saving and growing my money feels so natural?",
+  "Why do I handle money with such confidence and ease?",
+  "How come I'm becoming more financially free every single day?",
+  "How come people value what I offer so highly?",
+  "Why is wealth such a natural fit for who I am?",
+  "How come I always have more than enough?",
+  "How come it's so easy for me to let go of old money patterns?",
+  "Why am I so aligned with financial growth?",
+  "How come I feel so safe having money?",
+  "How come my mindset around money is shifting so powerfully?",
+  "Why am I so deserving of a life that feels financially free?",
+  "How come everything I put my energy into creates real value?",
+  "Why am I exactly the kind of person who builds real lasting wealth?",
 ];
 
 const CHECKIN_PROMPTS = [
@@ -66,13 +101,30 @@ const CHECKIN_PROMPTS = [
   { label: "Expansion", prompt: "What's the one thing you keep almost believing about yourself and money — and what would it take to fully land there?" },
 ];
 
-const STORAGE_KEY = "mit_entries_v2";
+const BELIEF_EXAMPLES = ["I have to work hard to earn money", "Rich people are greedy", "I'm not good with money", "Money always runs out", "I don't deserve to be wealthy"];
 
-function loadEntries() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
-}
-function saveEntries(e) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(e)); } catch {}
+const STORAGE_KEY = "mit_entries_v3";
+function loadEntries() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; } }
+function saveEntries(e) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(e)); } catch {} }
+
+async function callAI(system, userMessage) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      system,
+      messages: [{ role: "user", content: userMessage }],
+    }),
+  });
+  const data = await response.json();
+  return data.content?.[0]?.text || "";
 }
 
 function GrainOverlay() {
@@ -97,16 +149,10 @@ function EntryDetail({ entry, onClose, onSaveFollowUp }) {
       const context = entry.type === "audit"
         ? `Original belief: "${entry.belief}". AI audit: "${JSON.stringify(entry.result)}".`
         : `Prompt: "${entry.prompt}". Response: "${entry.entry}". AI reflection: "${entry.result}".`;
-      const res = await fetch("/api/chat", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 1000,
-          system: `You are the AI companion inside The Money Identity App by Thought Therapy. CBT, nervous system regulation, identity-level money work. Direct, honest, warm — never generic. The person is continuing a previous reflection. Respond to their follow-up honestly and deeply. 3–5 sentences. End with one question that goes deeper if there's more to explore, or affirm the insight if they've landed somewhere true. No bullet points — clean prose only.`,
-          messages: [{ role: "user", content: `Context: ${context}\n\nFollow-up: "${followUp}"` }],
-        }),
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text || "Something didn't connect. Try again.";
+      const text = await callAI(
+        `You are the AI companion inside The Money Identity App by Thought Therapy. CBT, nervous system regulation, identity-level money work. Direct, honest, warm — never generic. The person is continuing a previous reflection. Respond to their follow-up honestly and deeply. 3–5 sentences. End with one question that goes deeper if there's more to explore, or affirm the insight if they've landed somewhere true. No bullet points — clean prose only.`,
+        `Context: ${context}\n\nFollow-up: "${followUp}"`
+      );
       setFollowUpResponse(text);
       onSaveFollowUp(entry.id, followUp, text);
       setSaved(true);
@@ -122,7 +168,6 @@ function EntryDetail({ entry, onClose, onSaveFollowUp }) {
         <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#b4a890", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "1rem" }}>
           {entry.date} · {entry.type === "audit" ? "Belief Audit" : `Check-in · ${entry.label}`}
         </p>
-
         {entry.type === "audit" && (
           <>
             <div style={{ background: "#2a2018", borderRadius: "0.875rem", padding: "1.1rem", marginBottom: "1rem" }}>
@@ -141,7 +186,6 @@ function EntryDetail({ entry, onClose, onSaveFollowUp }) {
             )}
           </>
         )}
-
         {entry.type === "checkin" && (
           <>
             <div style={{ background: "#2a2018", borderRadius: "0.875rem", padding: "1.1rem", marginBottom: "1rem" }}>
@@ -158,7 +202,6 @@ function EntryDetail({ entry, onClose, onSaveFollowUp }) {
             </div>
           </>
         )}
-
         {entry.followUp && entry.followUpResponse && (
           <div style={{ marginBottom: "1.25rem" }}>
             <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#b4a890", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.75rem" }}>↳ Your follow-up</p>
@@ -171,7 +214,6 @@ function EntryDetail({ entry, onClose, onSaveFollowUp }) {
             </div>
           </div>
         )}
-
         <div style={{ borderTop: "1px solid #e8e0d4", paddingTop: "1.25rem" }}>
           <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#b4a890", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.75rem" }}>{entry.followUp ? "Continue the thread" : "Go deeper — respond here"}</p>
           <textarea value={followUp} onChange={e => { setFollowUp(e.target.value); setSaved(false); }} placeholder="What's coming up as you sit with this? Answer the question, push back, go deeper…" rows={4}
@@ -190,8 +232,6 @@ function EntryDetail({ entry, onClose, onSaveFollowUp }) {
   );
 }
 
-const BELIEF_EXAMPLES = ["I have to work hard to earn money", "Rich people are greedy", "I'm not good with money", "Money always runs out", "I don't deserve to be wealthy"];
-
 export default function MoneyIdentityApp() {
   const [tab, setTab] = useState("home");
   const [beliefInput, setBeliefInput] = useState("");
@@ -204,12 +244,16 @@ export default function MoneyIdentityApp() {
   const [entries, setEntries] = useState([]);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [affirmationDay, setAffirmationDay] = useState(0);
+  const [askDay, setAskDay] = useState(0);
+  const [askJournal, setAskJournal] = useState("");
+  const [askSaved, setAskSaved] = useState(false);
 
   useEffect(() => {
     setEntries(loadEntries());
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
     setAffirmationDay(dayOfYear % 30);
     setCheckinIndex(dayOfYear % 30);
+    setAskDay(dayOfYear % 30);
   }, []);
 
   function addEntry(entry) {
@@ -229,30 +273,16 @@ export default function MoneyIdentityApp() {
     if (!beliefInput.trim()) return;
     setBeliefLoading(true); setBeliefResult(null);
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 1000,
-          system: `You are the AI companion inside The Money Identity App by Thought Therapy. Audit money beliefs using CBT and identity-level rewiring. Direct, warm, psychologically sharp. No generic affirmations or wellness-speak. Respond ONLY in this JSON structure, no markdown, no preamble:
+      const rawText = await callAI(
+        `You are the AI companion inside The Money Identity App by Thought Therapy. Audit money beliefs using CBT and identity-level rewiring. Direct, warm, psychologically sharp. No generic affirmations or wellness-speak. Respond ONLY in this exact JSON structure with no markdown, no preamble, no extra text:
 {"origin":"One sentence on where this belief likely comes from.","cost":"What this belief is costing the person at an identity level.","truth":"The cognitive distortion or lie embedded in this belief, named clearly.","rewrite":"A single rewritten belief — identity-level, present tense, grounded not toxic-positive.","body_check":"One question about where this belief lives in the body and what releasing it feels like."}`,
-          messages: [{ role: "user", content: beliefInput }],
-        }),
-      });
-      const data = await res.json();
-      const rawText = data.content?.[0]?.text || "";
+        beliefInput
+      );
       let parsed = {};
       try {
-        const clean = rawText.replace(/```json|```/g, "").trim();
-        parsed = JSON.parse(clean);
-      } catch {
-        // Try to extract JSON from the text if it's wrapped in other content
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try { parsed = JSON.parse(jsonMatch[0]); } catch { parsed = { error: "Could not parse response" }; }
-        } else {
-          parsed = { error: rawText || "Something didn't connect. Try again." };
-        }
-      }
+        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { error: "Could not read response." };
+      } catch { parsed = { error: "Could not read response." }; }
       setBeliefResult(parsed);
       addEntry({ id: Date.now().toString(), type: "audit", belief: beliefInput, result: parsed, date: new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" }), followUp: "", followUpResponse: "" });
     } catch { setBeliefResult({ error: "Something didn't connect. Try again." }); }
@@ -263,24 +293,31 @@ export default function MoneyIdentityApp() {
     if (!checkinEntry.trim()) return;
     setCheckinLoading(true); setCheckinResult(null);
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 1000,
-          system: `You are the AI companion inside The Money Identity App by Thought Therapy. CBT, nervous system regulation, identity-level money work. Direct, honest, warm — never generic. Reflect back what you hear — the belief underneath, the identity pattern, one concrete reframe. 3–5 sentences. End with one question that goes deeper. No bullet points — clean prose only.`,
-          messages: [{ role: "user", content: `Prompt: "${CHECKIN_PROMPTS[checkinIndex].prompt}"\n\nResponse: "${checkinEntry}"` }],
-        }),
-      });
-      const data = await res.json();
-      const text = data.content?.[0]?.text || "Something went quiet. Try again.";
+      const text = await callAI(
+        `You are the AI companion inside The Money Identity App by Thought Therapy. CBT, nervous system regulation, identity-level money work. Direct, honest, warm — never generic. Reflect back what you hear — the belief underneath, the identity pattern, one concrete reframe. 3–5 sentences. End with one question that goes deeper. No bullet points — clean prose only.`,
+        `Prompt: "${CHECKIN_PROMPTS[checkinIndex].prompt}"\n\nResponse: "${checkinEntry}"`
+      );
       setCheckinResult(text);
       addEntry({ id: Date.now().toString(), type: "checkin", label: CHECKIN_PROMPTS[checkinIndex].label, prompt: CHECKIN_PROMPTS[checkinIndex].prompt, entry: checkinEntry, result: text, date: new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" }), followUp: "", followUpResponse: "" });
     } catch { setCheckinResult("Something didn't connect. Try again."); }
     setCheckinLoading(false);
   }
 
+  function saveAskJournal() {
+    if (!askJournal.trim()) return;
+    addEntry({ id: Date.now().toString(), type: "ask", question: ASKFORMATIONS[askDay], entry: askJournal, date: new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" }), followUp: "", followUpResponse: "" });
+    setAskSaved(true);
+  }
+
   const todayAffirmation = AFFIRMATIONS[affirmationDay];
-  const tabs = [{ key: "home", label: "Home" }, { key: "selfconcept", label: "Self Concept" }, { key: "audit", label: "Belief Audit" }, { key: "checkin", label: "Check-in" }, { key: "journal", label: `Journal${entries.length ? ` (${entries.length})` : ""}` }];
+  const tabs = [
+    { key: "home", label: "Home" },
+    { key: "selfconcept", label: "Self Concept" },
+    { key: "ask", label: "Askformations" },
+    { key: "audit", label: "Belief Audit" },
+    { key: "checkin", label: "Check-in" },
+    { key: "journal", label: `Journal${entries.length ? ` (${entries.length})` : ""}` },
+  ];
 
   if (selectedEntry) return <EntryDetail entry={selectedEntry} onClose={() => setSelectedEntry(null)} onSaveFollowUp={updateEntry} />;
 
@@ -318,7 +355,7 @@ export default function MoneyIdentityApp() {
 
           <div style={{ display: "flex", padding: "1.25rem 1.5rem 0", position: "relative", zIndex: 1, borderBottom: "1px solid #e8e0d4", overflowX: "auto" }}>
             {tabs.map(s => (
-              <button key={s.key} onClick={() => { setTab(s.key); setBeliefResult(null); setCheckinResult(null); setCheckinEntry(""); setBeliefInput(""); }} className="tb" style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans',sans-serif", fontWeight: tab === s.key ? 400 : 200, fontSize: "0.72rem", color: tab === s.key ? "#2a2018" : "#9a8c7a", paddingBottom: "0.75rem", marginRight: "1.1rem", borderBottom: tab === s.key ? "2px solid #c4a882" : "2px solid transparent", transition: "all 0.2s", whiteSpace: "nowrap" }}>{s.label}</button>
+              <button key={s.key} onClick={() => { setTab(s.key); setBeliefResult(null); setCheckinResult(null); setCheckinEntry(""); setBeliefInput(""); setAskJournal(""); setAskSaved(false); }} className="tb" style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans',sans-serif", fontWeight: tab === s.key ? 400 : 200, fontSize: "0.68rem", color: tab === s.key ? "#2a2018" : "#9a8c7a", paddingBottom: "0.75rem", marginRight: "1rem", borderBottom: tab === s.key ? "2px solid #c4a882" : "2px solid transparent", transition: "all 0.2s", whiteSpace: "nowrap" }}>{s.label}</button>
             ))}
           </div>
 
@@ -337,19 +374,21 @@ export default function MoneyIdentityApp() {
                 <div className="fu1" style={{ background: "#fff", border: "1px solid #e8d4b8", borderRadius: "1rem", padding: "1.5rem", marginBottom: "1.25rem" }}>
                   <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#c4a882", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: "1rem" }}>Today's Affirmation</p>
                   <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.05rem", color: "#2a2018", lineHeight: 1.7, marginBottom: "0.75rem" }}>{todayAffirmation.i}</p>
-                  <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "0.95rem", color: "#6a5c4e", lineHeight: 1.7, fontStyle: "italic" }}>{todayAffirmation.you}</p>
-                  <button onClick={() => setTab("selfconcept")} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans',sans-serif", fontSize: "0.65rem", color: "#c4a882", letterSpacing: "0.15em", textTransform: "uppercase", marginTop: "1rem", padding: 0 }}>View all affirmations →</button>
+                  <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "0.95rem", color: "#6a5c4e", lineHeight: 1.7, fontStyle: "italic", marginBottom: "1rem" }}>{todayAffirmation.you}</p>
+                  <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1rem", color: "#2a2018", lineHeight: 1.6, fontStyle: "italic", paddingTop: "0.75rem", borderTop: "1px solid #e8e0d4" }}>"{ASKFORMATIONS[askDay]}"</p>
                 </div>
 
                 <div className="fu2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   {[
                     { key: "audit", icon: "◈", title: "Belief Audit", sub: "Unpack & rewire a money belief" },
                     { key: "checkin", icon: "◎", title: "Check-in", sub: "Guided identity prompts" },
-                    { key: "journal", icon: "◐", title: "Journal", sub: `${entries.length} saved entr${entries.length === 1 ? "y" : "ies"}`, span: 2 },
+                    { key: "ask", icon: "?", title: "Askformations", sub: "Questions that rewire your brain", span: 1 },
+                    { key: "journal", icon: "◐", title: "Journal", sub: `${entries.length} saved entr${entries.length === 1 ? "y" : "ies"}`, span: 1 },
                   ].map(item => (
-                    <button key={item.key} onClick={() => setTab(item.key)} className="card" style={{ background: "#fff", border: "1px solid #e8e0d4", borderRadius: "0.875rem", padding: "1.25rem", cursor: "pointer", textAlign: "left", transition: "all 0.2s", boxShadow: "0 2px 8px rgba(42,32,24,0.04)", gridColumn: `span ${item.span || 1}`, display: item.span === 2 ? "flex" : "block", alignItems: "center", gap: "1rem" }}>
-                      <p style={{ fontSize: "1.4rem", marginBottom: item.span === 2 ? 0 : "0.5rem" }}>{item.icon}</p>
-                      <div><p style={{ fontFamily: "'Playfair Display',serif", fontSize: "0.95rem", color: "#2a2018", marginBottom: "0.2rem" }}>{item.title}</p><p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.68rem", color: "#9a8c7a", lineHeight: 1.4 }}>{item.sub}</p></div>
+                    <button key={item.key} onClick={() => setTab(item.key)} className="card" style={{ background: "#fff", border: "1px solid #e8e0d4", borderRadius: "0.875rem", padding: "1.25rem", cursor: "pointer", textAlign: "left", transition: "all 0.2s", boxShadow: "0 2px 8px rgba(42,32,24,0.04)", gridColumn: `span ${item.span || 1}` }}>
+                      <p style={{ fontSize: "1.4rem", marginBottom: "0.5rem" }}>{item.icon}</p>
+                      <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "0.95rem", color: "#2a2018", marginBottom: "0.2rem" }}>{item.title}</p>
+                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.68rem", color: "#9a8c7a", lineHeight: 1.4 }}>{item.sub}</p>
                     </button>
                   ))}
                 </div>
@@ -366,13 +405,46 @@ export default function MoneyIdentityApp() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                   {AFFIRMATIONS.map((a, i) => (
                     <div key={i} style={{ background: i === affirmationDay ? "#fdf8f0" : "#fff", border: `1px solid ${i === affirmationDay ? "#c4a882" : "#e8e0d4"}`, borderRadius: "0.875rem", padding: "1.1rem" }}>
-                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.58rem", color: i === affirmationDay ? "#c4a882" : "#b4a890", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.6rem" }}>
-                        Day {i + 1}{i === affirmationDay ? " · Today" : ""}
-                      </p>
+                      <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.58rem", color: i === affirmationDay ? "#c4a882" : "#b4a890", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.6rem" }}>Day {i + 1}{i === affirmationDay ? " · Today" : ""}</p>
                       <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "0.95rem", color: "#2a2018", lineHeight: 1.7, marginBottom: "0.5rem" }}>{a.i}</p>
                       <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "0.9rem", color: "#6a5c4e", lineHeight: 1.65, fontStyle: "italic" }}>{a.you}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* ASKFORMATIONS */}
+            {tab === "ask" && (
+              <div>
+                <div className="fu" style={{ marginBottom: "1.5rem" }}>
+                  <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.2rem", color: "#2a2018", marginBottom: "0.25rem" }}>Askformations</p>
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.75rem", color: "#9a8c7a", lineHeight: 1.5 }}>Your brain automatically searches for answers to questions. Let it find evidence for abundance.</p>
+                </div>
+
+                <div className="fu1" style={{ background: "linear-gradient(135deg,#2a2018,#4a3828)", borderRadius: "1rem", padding: "1.75rem", marginBottom: "1.25rem", position: "relative", overflow: "hidden" }}>
+                  <div style={{ position: "absolute", top: "-20px", right: "-20px", width: "100px", height: "100px", borderRadius: "50%", background: "rgba(196,168,130,0.12)" }} />
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#c4a882", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: "0.75rem" }}>Today's Question</p>
+                  <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.15rem", color: "#faf7f2", lineHeight: 1.65, fontStyle: "italic" }}>"{ASKFORMATIONS[askDay]}"</p>
+                </div>
+
+                <div className="fu2" style={{ marginBottom: "1rem" }}>
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#b4a890", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.75rem" }}>Let your brain answer — write whatever comes up</p>
+                  <textarea value={askJournal} onChange={e => { setAskJournal(e.target.value); setAskSaved(false); }} placeholder="Don't overthink it. Just write what comes…" rows={5}
+                    style={{ width: "100%", background: "#fff", border: "1px solid #e8e0d4", borderRadius: "0.875rem", padding: "1.1rem", fontFamily: "'Playfair Display',serif", fontSize: "1rem", color: "#2a2018", lineHeight: 1.7, marginBottom: "0.75rem" }} />
+                  <button onClick={saveAskJournal} disabled={!askJournal.trim() || askSaved} className="pb" style={{ width: "100%", background: askJournal.trim() && !askSaved ? "#2a2018" : "#e8e0d4", border: "none", borderRadius: "0.875rem", padding: "1rem", color: askJournal.trim() && !askSaved ? "#faf7f2" : "#b4a890", fontFamily: "'DM Sans',sans-serif", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", cursor: askJournal.trim() && !askSaved ? "pointer" : "not-allowed", transition: "all 0.2s" }}>{askSaved ? "✓ Saved to Journal" : "Save to Journal"}</button>
+                </div>
+
+                <div style={{ marginTop: "1.5rem" }}>
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#b4a890", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.75rem" }}>All 30 questions</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                    {ASKFORMATIONS.map((q, i) => (
+                      <div key={i} style={{ background: i === askDay ? "#fdf8f0" : "#fff", border: `1px solid ${i === askDay ? "#c4a882" : "#e8e0d4"}`, borderRadius: "0.75rem", padding: "0.9rem 1rem" }}>
+                        <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.58rem", color: i === askDay ? "#c4a882" : "#b4a890", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "0.3rem" }}>Day {i + 1}{i === askDay ? " · Today" : ""}</p>
+                        <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "0.9rem", color: "#2a2018", lineHeight: 1.55, fontStyle: "italic" }}>"{q}"</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -386,7 +458,8 @@ export default function MoneyIdentityApp() {
                       <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.2rem", color: "#2a2018", marginBottom: "0.4rem" }}>What's the belief?</p>
                       <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.8rem", color: "#9a8c7a", lineHeight: 1.5 }}>Write it exactly as it runs in your head. Don't clean it up.</p>
                     </div>
-                    <textarea value={beliefInput} onChange={e => setBeliefInput(e.target.value)} placeholder="e.g. I'll always struggle with money no matter what I do" rows={4} style={{ width: "100%", background: "#fff", border: "1px solid #e8e0d4", borderRadius: "0.875rem", padding: "1.1rem", fontFamily: "'Playfair Display',serif", fontSize: "1rem", color: "#2a2018", lineHeight: 1.6, marginBottom: "1rem" }} />
+                    <textarea value={beliefInput} onChange={e => setBeliefInput(e.target.value)} placeholder="e.g. I'll always struggle with money no matter what I do" rows={4}
+                      style={{ width: "100%", background: "#fff", border: "1px solid #e8e0d4", borderRadius: "0.875rem", padding: "1.1rem", fontFamily: "'Playfair Display',serif", fontSize: "1rem", color: "#2a2018", lineHeight: 1.6, marginBottom: "1rem" }} />
                     <div className="fu1" style={{ marginBottom: "1.25rem" }}>
                       <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#b4a890", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.6rem" }}>Common ones to start with</p>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
@@ -403,7 +476,7 @@ export default function MoneyIdentityApp() {
                       <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#c4a882", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.4rem" }}>The belief</p>
                       <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "0.95rem", color: "#e8ddd0", fontStyle: "italic" }}>"{beliefInput}"</p>
                     </div>
-                    {beliefResult.error ? <p style={{ fontFamily: "'DM Sans',sans-serif", color: "#9a8c7a" }}>{beliefResult.error}</p> : (
+                    {beliefResult.error ? <p style={{ fontFamily: "'DM Sans',sans-serif", color: "#9a8c7a", marginBottom: "1rem" }}>{beliefResult.error}</p> : (
                       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.25rem" }}>
                         {[{ key: "origin", label: "Where it came from", icon: "○" }, { key: "cost", label: "What it's costing you", icon: "◌" }, { key: "truth", label: "The lie inside it", icon: "◉" }, { key: "rewrite", label: "Rewritten belief", icon: "◈", highlight: true }, { key: "body_check", label: "Body check", icon: "◎" }].map(item => (
                           <div key={item.key} style={{ background: item.highlight ? "#fdf8f0" : "#fff", border: `1px solid ${item.highlight ? "#c4a882" : "#e8e0d4"}`, borderRadius: "0.875rem", padding: "1.1rem" }}>
@@ -437,7 +510,8 @@ export default function MoneyIdentityApp() {
                     <div style={{ display: "flex", gap: "0.3rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
                       {CHECKIN_PROMPTS.map((_, i) => <button key={i} onClick={() => setCheckinIndex(i)} style={{ width: i === checkinIndex ? "1.5rem" : "0.4rem", height: "3px", borderRadius: "2px", background: i === checkinIndex ? "#c4a882" : "#e8e0d4", border: "none", cursor: "pointer", transition: "all 0.3s", padding: 0 }} />)}
                     </div>
-                    <textarea value={checkinEntry} onChange={e => setCheckinEntry(e.target.value)} placeholder="Write what's true for you right now…" rows={6} style={{ width: "100%", background: "#fff", border: "1px solid #e8e0d4", borderRadius: "0.875rem", padding: "1.1rem", fontFamily: "'Playfair Display',serif", fontSize: "1rem", color: "#2a2018", lineHeight: 1.7, marginBottom: "1rem" }} />
+                    <textarea value={checkinEntry} onChange={e => setCheckinEntry(e.target.value)} placeholder="Write what's true for you right now…" rows={6}
+                      style={{ width: "100%", background: "#fff", border: "1px solid #e8e0d4", borderRadius: "0.875rem", padding: "1.1rem", fontFamily: "'Playfair Display',serif", fontSize: "1rem", color: "#2a2018", lineHeight: 1.7, marginBottom: "1rem" }} />
                     <button onClick={runCheckin} disabled={!checkinEntry.trim()} className="pb" style={{ width: "100%", background: checkinEntry.trim() ? "#2a2018" : "#e8e0d4", border: "none", borderRadius: "0.875rem", padding: "1rem", color: checkinEntry.trim() ? "#faf7f2" : "#b4a890", fontFamily: "'DM Sans',sans-serif", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", cursor: checkinEntry.trim() ? "pointer" : "not-allowed", transition: "all 0.2s" }}>Reflect with AI</button>
                   </>
                 )}
@@ -469,22 +543,26 @@ export default function MoneyIdentityApp() {
               <div>
                 <div className="fu" style={{ marginBottom: "1.25rem" }}>
                   <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.2rem", color: "#2a2018", marginBottom: "0.25rem" }}>Your Work</p>
-                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.75rem", color: "#9a8c7a" }}>{entries.length} saved {entries.length === 1 ? "entry" : "entries"} — tap any to continue the reflection</p>
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.75rem", color: "#9a8c7a" }}>{entries.length} saved {entries.length === 1 ? "entry" : "entries"} — tap any to continue</p>
                 </div>
                 {entries.length === 0 ? (
                   <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
                     <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.1rem", color: "#c4b8a4", fontStyle: "italic", marginBottom: "0.5rem" }}>Nothing here yet.</p>
-                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.75rem", color: "#b4a890" }}>Complete a belief audit or check-in and it'll live here.</p>
+                    <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.75rem", color: "#b4a890" }}>Complete a belief audit, check-in, or askformation and it'll live here.</p>
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                     {entries.map(entry => (
-                      <button key={entry.id} onClick={() => setSelectedEntry(entry)} className="er" style={{ background: "#fff", border: "1px solid #e8e0d4", borderRadius: "0.875rem", padding: "1rem 1.1rem", cursor: "pointer", textAlign: "left", transition: "all 0.2s", width: "100%" }}>
+                      <button key={entry.id} onClick={() => entry.type !== "ask" && setSelectedEntry(entry)} style={{ background: "#fff", border: "1px solid #e8e0d4", borderRadius: "0.875rem", padding: "1rem 1.1rem", cursor: entry.type !== "ask" ? "pointer" : "default", textAlign: "left", transition: "all 0.2s", width: "100%" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.4rem" }}>
-                          <span style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#b4a890", letterSpacing: "0.15em", textTransform: "uppercase" }}>{entry.type === "audit" ? "◈ Belief Audit" : `◎ ${entry.label}`}</span>
+                          <span style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#b4a890", letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                            {entry.type === "audit" ? "◈ Belief Audit" : entry.type === "ask" ? "? Askformation" : `◎ ${entry.label}`}
+                          </span>
                           <span style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#c4b8a4" }}>{entry.date}</span>
                         </div>
-                        <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "0.95rem", color: "#2a2018", lineHeight: 1.5, fontStyle: "italic" }}>"{(entry.type === "audit" ? entry.belief : entry.entry).slice(0, 80)}…"</p>
+                        <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "0.95rem", color: "#2a2018", lineHeight: 1.5, fontStyle: "italic" }}>
+                          "{(entry.type === "audit" ? entry.belief : entry.type === "ask" ? entry.question : entry.entry).slice(0, 80)}…"
+                        </p>
                         {entry.followUp && <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.65rem", color: "#c4a882", marginTop: "0.4rem" }}>↳ Follow-up saved</p>}
                       </button>
                     ))}
