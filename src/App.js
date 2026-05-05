@@ -1,6 +1,77 @@
 import { useState, useEffect } from "react";
 
 const ANTHROPIC_KEY = process.env.REACT_APP_ANTHROPIC_API_KEY;
+const ACCESS_CODE_KEY = "mit_access_granted_v1";
+
+function AccessGate({ onUnlock }) {
+  const [code, setCode] = useState("");
+  const [error, setError] = useState(false);
+  const [shake, setShake] = useState(false);
+
+  function tryCode() {
+    // Code is checked against Payhip license key format - you update this list
+    const validCodes = ["TT2024", "MONEY48", "THOUGHTTHERAPY"]; // placeholder codes - update with Payhip keys
+    if (validCodes.includes(code.trim().toUpperCase())) {
+      localStorage.setItem(ACCESS_CODE_KEY, "true");
+      onUnlock();
+    } else {
+      setError(true);
+      setShake(true);
+      setTimeout(() => setShake(false), 600);
+    }
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#faf7f2", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
+      <div style={{ width: "100%", maxWidth: 380, textAlign: "center" }}>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 200, fontSize: "0.65rem", color: "#b4a890", letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: "0.5rem" }}>Thought Therapy</p>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.8rem", color: "#2a2018", fontWeight: 400, marginBottom: "0.25rem" }}>The Money Identity App</h1>
+        <p style={{ fontFamily: "'Playfair Display', serif", fontSize: "0.9rem", color: "#9a8c7a", fontStyle: "italic", marginBottom: "2.5rem" }}>Workbook Companion</p>
+        
+        <div style={{ background: "#fff", border: "1px solid #e8e0d4", borderRadius: "1rem", padding: "2rem", animation: shake ? "shake 0.5s ease" : "none" }}>
+          <p style={{ fontFamily: "'Playfair Display', serif", fontSize: "1rem", color: "#2a2018", marginBottom: "0.5rem" }}>Enter your access code</p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 200, fontSize: "0.75rem", color: "#9a8c7a", marginBottom: "1.5rem", lineHeight: 1.5 }}>Your unique code was sent in your purchase confirmation email.</p>
+          
+          <input
+            value={code}
+            onChange={e => { setCode(e.target.value); setError(false); }}
+            onKeyDown={e => e.key === "Enter" && tryCode()}
+            placeholder="Enter code here"
+            style={{
+              width: "100%", padding: "0.9rem 1rem", border: `1px solid ${error ? "#e8a090" : "#e8e0d4"}`,
+              borderRadius: "0.75rem", fontFamily: "'DM Sans', sans-serif", fontSize: "1rem",
+              color: "#2a2018", background: error ? "#fff8f7" : "#faf7f2",
+              outline: "none", textAlign: "center", letterSpacing: "0.1em",
+              marginBottom: "0.75rem", boxSizing: "border-box"
+            }}
+          />
+          
+          {error && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.75rem", color: "#c4705a", marginBottom: "0.75rem" }}>That code doesn't match. Check your confirmation email.</p>}
+          
+          <button onClick={tryCode} style={{
+            width: "100%", background: "#2a2018", border: "none", borderRadius: "0.75rem",
+            padding: "1rem", color: "#faf7f2", fontFamily: "'DM Sans', sans-serif",
+            fontSize: "0.75rem", letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer"
+          }}>Unlock App</button>
+        </div>
+        
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 200, fontSize: "0.7rem", color: "#b4a890", marginTop: "1.5rem" }}>
+          Don't have a code? Get access at <span style={{ color: "#c4a882" }}>thoughttherapy.co</span>
+        </p>
+      </div>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;1,400&family=DM+Sans:wght@200;300;400&display=swap');
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-8px); }
+          40% { transform: translateX(8px); }
+          60% { transform: translateX(-8px); }
+          80% { transform: translateX(8px); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 const AFFIRMATIONS = [
   { i: "I am in charge of my earning potential.", you: "You are allowed to want and have more." },
@@ -233,6 +304,14 @@ function EntryDetail({ entry, onClose, onSaveFollowUp }) {
 }
 
 export default function MoneyIdentityApp() {
+  const [unlocked, setUnlocked] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem(ACCESS_CODE_KEY) === "true") setUnlocked(true);
+  }, []);
+
+  if (!unlocked) return <AccessGate onUnlock={() => setUnlocked(true)} />;
+
   const [tab, setTab] = useState("home");
   const [beliefInput, setBeliefInput] = useState("");
   const [beliefResult, setBeliefResult] = useState(null);
