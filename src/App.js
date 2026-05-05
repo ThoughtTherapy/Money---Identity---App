@@ -274,8 +274,10 @@ export default function MoneyIdentityApp() {
     setBeliefLoading(true); setBeliefResult(null);
     try {
       const rawText = await callAI(
-        `You are the AI companion inside The Money Identity App by Thought Therapy. Audit money beliefs using CBT and identity-level rewiring. Direct, warm, psychologically sharp. No generic affirmations or wellness-speak. Respond ONLY in this exact JSON structure with no markdown, no preamble, no extra text:
-{"origin":"One sentence on where this belief likely comes from.","cost":"What this belief is costing the person at an identity level.","truth":"The cognitive distortion or lie embedded in this belief, named clearly.","rewrite":"A single rewritten belief — identity-level, present tense, grounded not toxic-positive.","body_check":"One question about where this belief lives in the body and what releasing it feels like."}`,
+        `You are the AI companion inside The Money Identity App by Thought Therapy. Audit money beliefs using CBT and identity-level rewiring. Direct, warm, psychologically sharp. No generic affirmations.
+
+You MUST respond with ONLY a valid JSON object. No text before or after. No markdown. No backticks. Just the raw JSON object like this example:
+{"origin":"This belief likely came from watching a parent struggle financially and absorbing their anxiety.","cost":"It keeps you from pursuing higher-paying work and settling for less than you deserve.","truth":"This is an overgeneralisation — difficulty is not a permanent law of nature.","rewrite":"Money flows to me when I align my work with my real value.","body_check":"Where do you feel this belief in your body right now — and what would it feel like to breathe it out?"}`,
         beliefInput
       );
       let parsed = {};
@@ -312,7 +314,7 @@ export default function MoneyIdentityApp() {
   const todayAffirmation = AFFIRMATIONS[affirmationDay];
   const tabs = [
     { key: "home", label: "Home" },
-    { key: "selfconcept", label: "Self Concept" },
+    { key: "selfconcept", label: "Affirmations" },
     { key: "ask", label: "Askformations" },
     { key: "audit", label: "Belief Audit" },
     { key: "checkin", label: "Check-in" },
@@ -399,7 +401,7 @@ export default function MoneyIdentityApp() {
             {tab === "selfconcept" && (
               <div>
                 <div className="fu" style={{ marginBottom: "1.5rem" }}>
-                  <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.2rem", color: "#2a2018", marginBottom: "0.25rem" }}>Self Concept</p>
+                  <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.2rem", color: "#2a2018", marginBottom: "0.25rem" }}>Self Concept Affirmations</p>
                   <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.75rem", color: "#9a8c7a" }}>30 days of identity work. Read them slowly.</p>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
@@ -419,23 +421,16 @@ export default function MoneyIdentityApp() {
               <div>
                 <div className="fu" style={{ marginBottom: "1.5rem" }}>
                   <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.2rem", color: "#2a2018", marginBottom: "0.25rem" }}>Askformations</p>
-                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.75rem", color: "#9a8c7a", lineHeight: 1.5 }}>Your brain automatically searches for answers to questions. Let it find evidence for abundance.</p>
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.75rem", color: "#9a8c7a", lineHeight: 1.5 }}>Your brain automatically searches for answers to questions. Read today's question, sit with it, and let your mind find evidence for abundance.</p>
                 </div>
 
-                <div className="fu1" style={{ background: "linear-gradient(135deg,#2a2018,#4a3828)", borderRadius: "1rem", padding: "1.75rem", marginBottom: "1.25rem", position: "relative", overflow: "hidden" }}>
+                <div className="fu1" style={{ background: "linear-gradient(135deg,#2a2018,#4a3828)", borderRadius: "1rem", padding: "1.75rem", marginBottom: "1.5rem", position: "relative", overflow: "hidden" }}>
                   <div style={{ position: "absolute", top: "-20px", right: "-20px", width: "100px", height: "100px", borderRadius: "50%", background: "rgba(196,168,130,0.12)" }} />
-                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#c4a882", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: "0.75rem" }}>Today's Question</p>
-                  <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.15rem", color: "#faf7f2", lineHeight: 1.65, fontStyle: "italic" }}>"{ASKFORMATIONS[askDay]}"</p>
+                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#c4a882", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: "0.75rem" }}>Today's Question · Day {askDay + 1}</p>
+                  <p style={{ fontFamily: "'Playfair Display',serif", fontSize: "1.2rem", color: "#faf7f2", lineHeight: 1.65, fontStyle: "italic" }}>"{ASKFORMATIONS[askDay]}"</p>
                 </div>
 
-                <div className="fu2" style={{ marginBottom: "1rem" }}>
-                  <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#b4a890", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.75rem" }}>Let your brain answer — write whatever comes up</p>
-                  <textarea value={askJournal} onChange={e => { setAskJournal(e.target.value); setAskSaved(false); }} placeholder="Don't overthink it. Just write what comes…" rows={5}
-                    style={{ width: "100%", background: "#fff", border: "1px solid #e8e0d4", borderRadius: "0.875rem", padding: "1.1rem", fontFamily: "'Playfair Display',serif", fontSize: "1rem", color: "#2a2018", lineHeight: 1.7, marginBottom: "0.75rem" }} />
-                  <button onClick={saveAskJournal} disabled={!askJournal.trim() || askSaved} className="pb" style={{ width: "100%", background: askJournal.trim() && !askSaved ? "#2a2018" : "#e8e0d4", border: "none", borderRadius: "0.875rem", padding: "1rem", color: askJournal.trim() && !askSaved ? "#faf7f2" : "#b4a890", fontFamily: "'DM Sans',sans-serif", fontSize: "0.75rem", letterSpacing: "0.15em", textTransform: "uppercase", cursor: askJournal.trim() && !askSaved ? "pointer" : "not-allowed", transition: "all 0.2s" }}>{askSaved ? "✓ Saved to Journal" : "Save to Journal"}</button>
-                </div>
-
-                <div style={{ marginTop: "1.5rem" }}>
+                <div style={{ marginTop: "0.5rem" }}>
                   <p style={{ fontFamily: "'DM Sans',sans-serif", fontWeight: 200, fontSize: "0.6rem", color: "#b4a890", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: "0.75rem" }}>All 30 questions</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                     {ASKFORMATIONS.map((q, i) => (
