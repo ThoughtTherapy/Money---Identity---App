@@ -97,7 +97,7 @@ function EntryDetail({ entry, onClose, onSaveFollowUp }) {
       const context = entry.type === "audit"
         ? `Original belief: "${entry.belief}". AI audit: "${JSON.stringify(entry.result)}".`
         : `Prompt: "${entry.prompt}". Response: "${entry.entry}". AI reflection: "${entry.result}".`;
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514", max_tokens: 1000,
@@ -229,7 +229,7 @@ export default function MoneyIdentityApp() {
     if (!beliefInput.trim()) return;
     setBeliefLoading(true); setBeliefResult(null);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514", max_tokens: 1000,
@@ -250,7 +250,7 @@ export default function MoneyIdentityApp() {
     if (!checkinEntry.trim()) return;
     setCheckinLoading(true); setCheckinResult(null);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514", max_tokens: 1000,
