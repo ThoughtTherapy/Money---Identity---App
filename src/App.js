@@ -304,14 +304,7 @@ function EntryDetail({ entry, onClose, onSaveFollowUp }) {
 }
 
 export default function MoneyIdentityApp() {
-  const [unlocked, setUnlocked] = useState(false);
-
-  useEffect(() => {
-    if (localStorage.getItem(ACCESS_CODE_KEY) === "true") setUnlocked(true);
-  }, []);
-
-  if (!unlocked) return <AccessGate onUnlock={() => setUnlocked(true)} />;
-
+  const [unlocked, setUnlocked] = useState(() => localStorage.getItem(ACCESS_CODE_KEY) === "true");
   const [tab, setTab] = useState("home");
   const [beliefInput, setBeliefInput] = useState("");
   const [beliefResult, setBeliefResult] = useState(null);
@@ -400,6 +393,7 @@ You MUST respond with ONLY a valid JSON object. No text before or after. No mark
     { key: "journal", label: `Journal${entries.length ? ` (${entries.length})` : ""}` },
   ];
 
+  if (!unlocked) return <AccessGate onUnlock={() => setUnlocked(true)} />;
   if (selectedEntry) return <EntryDetail entry={selectedEntry} onClose={() => setSelectedEntry(null)} onSaveFollowUp={updateEntry} />;
 
   return (
