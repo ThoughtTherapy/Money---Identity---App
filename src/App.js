@@ -239,7 +239,20 @@ export default function MoneyIdentityApp() {
         }),
       });
       const data = await res.json();
-      const parsed = JSON.parse(data.content?.[0]?.text.replace(/```json|```/g, "").trim() || "{}");
+      const rawText = data.content?.[0]?.text || "";
+      let parsed = {};
+      try {
+        const clean = rawText.replace(/```json|```/g, "").trim();
+        parsed = JSON.parse(clean);
+      } catch {
+        // Try to extract JSON from the text if it's wrapped in other content
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try { parsed = JSON.parse(jsonMatch[0]); } catch { parsed = { error: "Could not parse response" }; }
+        } else {
+          parsed = { error: rawText || "Something didn't connect. Try again." };
+        }
+      }
       setBeliefResult(parsed);
       addEntry({ id: Date.now().toString(), type: "audit", belief: beliefInput, result: parsed, date: new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" }), followUp: "", followUpResponse: "" });
     } catch { setBeliefResult({ error: "Something didn't connect. Try again." }); }
