@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const ANTHROPIC_KEY = process.env.REACT_APP_ANTHROPIC_API_KEY;
+const ANTHROPIC_KEY = "sk-ant-api03-xL26-u2NI5rHowed2yr57R0DwLAo0RGvgrpsSj9d3_Y3LxfJR_1HVU_lgbtFAQ6yEVwdbdCL0vE9LEB--k0uwA-AL0xWQAA";
 
 const AFFIRMATIONS = [
   { i: "I am in charge of my earning potential.", you: "You are allowed to want and have more." },
