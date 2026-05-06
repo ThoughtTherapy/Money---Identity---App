@@ -10,7 +10,7 @@ function AccessGate({ onUnlock }) {
 
   function tryCode() {
     // Code is checked against Payhip license key format - you update this list
-    const validCodes = ["TT2024", "MONEY48", "THOUGHTTHERAPY"]; // placeholder codes - update with Payhip keys
+    const validCodes = ["THOUGHTTHERAPY48"];
     if (validCodes.includes(code.trim().toUpperCase())) {
       localStorage.setItem(ACCESS_CODE_KEY, "true");
       onUnlock();
